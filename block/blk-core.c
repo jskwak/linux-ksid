@@ -2034,6 +2034,12 @@ blk_qc_t generic_make_request(struct bio *bio)
 	current->bio_list = &bio_list_on_stack;
 	do {
 		struct request_queue *q = bdev_get_queue(bio->bi_bdev);
+		if (bio_data_dir(bio) == WRITE) {
+			bio->bi_streamid &= 0xFFFF;
+			bio->bi_streamid |= ((unsigned int) (current->pid) << 16);
+			blk_add_trace_msg(q, "StreamID=%#x, PID=%#x",
+				bio_get_streamid(bio), current->pid);
+		}
 
 		if (likely(blk_queue_enter(q, false) == 0)) {
 			ret = q->make_request_fn(q, bio);
